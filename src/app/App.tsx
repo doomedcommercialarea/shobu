@@ -86,6 +86,22 @@ export function App() {
     if (app.ready && home === null) setHome(!hasItems);
   }, [app.ready, home, hasItems]);
 
+  // `#home` on the address always opens the front page, for demos: nothing stored is touched, and a link
+  // to a friend's page (`#v=…`) is unaffected. Placed after the effect above so it wins on a first load.
+  useEffect(() => {
+    if (!app.ready) return;
+    const front = () => {
+      if (location.hash.toLowerCase() !== '#home') return;
+      history.replaceState(null, '', location.pathname + location.search);
+      setComparing(null);
+      setHelp(false);
+      setHome(true);
+    };
+    front();
+    window.addEventListener('hashchange', front);
+    return () => window.removeEventListener('hashchange', front);
+  }, [app.ready]);
+
   if (!app.ready || home === null) return <div className="boot" />;
   if (help) return <HowItWorks onClose={() => setHelp(false)} />;
   // A friend's link shows Compare even on a first visit, once the title list has loaded.
