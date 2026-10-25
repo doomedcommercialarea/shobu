@@ -1571,10 +1571,6 @@ a {
   text-align: center;
   margin: 0;
 }
-.form-ask {
-  margin: 12px auto 0;
-  max-width: 560px;
-}
 
 /* Library browse filters */
 .grid-filters {
@@ -1611,6 +1607,16 @@ a {
 .form-choices {
   display: flex;
   gap: 6px;
+}
+.form-check h2 {
+  margin: 0;
+  padding-right: 64px;
+}
+.form-check .hint {
+  margin: 0;
+}
+.form-check .form-list {
+  gap: 12px;
 }
 
 /* Duel: the title and its details sit together in a block of fixed height (each cut at two lines with an
@@ -1722,17 +1728,11 @@ main.sort {
   font-size: 0.8125rem;
   color: var(--muted);
 }
-.quick-check .form-ask {
-  margin-top: 8px;
-}
 @media (max-width: 520px) {
   .form-list li {
     flex-direction: column;
     align-items: flex-start;
   }
-}
-.quick-check .form-list {
-  gap: 12px;
 }
 
 /* Opening a title's card from wherever it appears */

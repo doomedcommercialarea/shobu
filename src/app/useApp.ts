@@ -104,8 +104,8 @@ export function useApp() {
   const [newcomerLog, setNewcomerLog] = useState<boolean[]>([]);
   /** Newcomers skipped this session. */
   const [passed, setPassed] = useState<Set<string>>(new Set());
-  /** Newcomers picked in the both view whose form (watched or read) is still to be asked, oldest first. */
-  const [formAsks, setFormAsks] = useState<string[]>([]);
+  /** Titles left unanswered at the last "Later" on the anime-or-manga list; it comes back only for others. */
+  const [formsLater, setFormsLater] = useState<string[]>([]);
   /** Which tips have been shown, and whether they're switched off. */
   const [tips, setTips] = useState<TipState>(NO_TIPS);
   /** The tip on screen, and the duel count when it appeared. */
@@ -145,6 +145,7 @@ export function useApp() {
     setCatalogueAt((s.meta.catalogueGeneratedAt as string) ?? null);
     setFriends((s.meta.friends as Friend[]) ?? []);
     setMyNameState((s.meta.myName as string) ?? '');
+    setFormsLater((s.meta.formsLater as string[]) ?? []);
     setUndoStack([]);
     setPair(null);
   }, []);
@@ -263,6 +264,18 @@ export function useApp() {
     [newcomerLog],
   );
 
+  /**
+   * Titles with an anime and a manga logged as seen without saying which, most recently logged first. Until
+   * answered they count as seen in the Anime and Manga views both. Asked about on switching to one of those views.
+   */
+  const formUnanswered = useMemo(
+    () =>
+      allItems
+        .filter((i) => formUnknown(i, allMarks.get(i.id)))
+        .sort((x, y) => (allMarks.get(y.id)?.updatedAt ?? 0) - (allMarks.get(x.id)?.updatedAt ?? 0))
+        .map((i) => i.id),
+    [allItems, allMarks],
+  );
   // Tips: one at a time, when something relevant is on screen. Shown once, then left alone.
   const knowsOneForm = useMemo(
     () => [...allMarks.values()].some((m) => m.anime !== undefined && m.manga !== undefined && m.anime !== m.manga),
@@ -308,13 +321,17 @@ export function useApp() {
       recent: votes.slice(-15).map((v) => v.outcome),
       movedUp: moved && !moved.isNew && moved.from > moved.to ? { title: moved.title, places: moved.from - moved.to } : null,
       knowsOneForm,
+      unanswered: (() => {
+        const it = view === 'both' && formUnanswered.length ? itemById.get(formUnanswered[0]) : undefined;
+        return it ? { id: it.id, title: displayTitle(it, settings) } : null;
+      })(),
     });
     if (!next) return;
     const after = afterShown(tips, next, votes.length);
     setTips(after);
     setTip({ ...next, at: votes.length });
     store.setMeta('tips', after).catch(() => undefined);
-  }, [ready, tip, tips, pair, votes, fit, itemById, settings, rankOf, newcomerLog, moved, knowsOneForm, backupDue, placingNow]);
+  }, [ready, tip, tips, pair, votes, fit, itemById, settings, rankOf, newcomerLog, moved, knowsOneForm, backupDue, placingNow, view, formUnanswered]);
 
   const changeTips = useCallback(async (next: TipState) => {
     setTips(next);
@@ -453,8 +470,6 @@ export function useApp() {
           isNew: true,
           both: fresh.length === 2,
         });
-        const ask = view === 'both' ? fresh.filter(hasBoth).map((i) => i.id) : [];
-        if (ask.length) setFormAsks((q) => [...q.filter((x) => !ask.includes(x)), ...ask]);
         setPair(null);
         return;
       }
@@ -501,23 +516,11 @@ export function useApp() {
     [pair, fit, votes, skippedPairs, newcomers, logNewcomer, markItem, placement],
   );
 
-  /**
-   * Newcomers picked in the both view that have an anime and a manga, still waiting for "watched or read?".
-   * Duel asks about them a few at a time rather than after every pick.
-   */
-  const formPending = useMemo(
-    () => formAsks.filter((id) => formUnknown(itemById.get(id) ?? { formats: [] }, allMarks.get(id))),
-    [formAsks, itemById, allMarks],
-  );
-  /** Answer for one title, or `null` to leave them all for later (they stay "watched or read?" in the Library). */
-  const answerForm = useCallback(
-    async (id: string | null, ans: Answer | null) => {
-      if (!id || !ans) return setFormAsks([]);
-      setFormAsks((q) => q.filter((x) => x !== id));
-      await answer(id, ans, 'duel');
-    },
-    [answer],
-  );
+  /** Leave the anime-or-manga list for now; it comes back when other titles join it. */
+  const laterForms = useCallback(async () => {
+    setFormsLater(formUnanswered);
+    await store.setMeta('formsLater', formUnanswered);
+  }, [formUnanswered]);
 
   const skipPair = useCallback(() => {
     if (!pair) return;
@@ -547,7 +550,6 @@ export function useApp() {
         for (const id of last.itemIds) n.delete(id);
         return n;
       });
-      setFormAsks((q) => q.filter((x) => !last.itemIds.includes(x)));
       setPair(last.pair);
       await store.deleteVote(last.voteId);
       await Promise.all(last.itemIds.map((id) => store.deleteMark(id)));
@@ -667,9 +669,9 @@ export function useApp() {
       marks: [...rawMarks.values()],
       votes: rawVotes,
       settings,
-      meta: { skipped, dismissed, newcomerLog, tips, groupOps, resets, friends, myName, ...(catalogueAt ? { catalogueGeneratedAt: catalogueAt } : {}) },
+      meta: { skipped, dismissed, newcomerLog, tips, groupOps, resets, friends, myName, formsLater, ...(catalogueAt ? { catalogueGeneratedAt: catalogueAt } : {}) },
     }),
-    [baseItems, rawMarks, rawVotes, settings, skipped, dismissed, newcomerLog, tips, groupOps, resets, friends, myName, catalogueAt],
+    [baseItems, rawMarks, rawVotes, settings, skipped, dismissed, newcomerLog, tips, groupOps, resets, friends, myName, formsLater, catalogueAt],
   );
 
   /** Keeps a friend's list; returns its key. */
@@ -947,8 +949,9 @@ export function useApp() {
     dismissTip: () => setTip(null),
     tips,
     changeTips,
-    formPending,
-    answerForm,
+    formUnanswered,
+    formsLater,
+    laterForms,
     dismissed,
     dismiss,
     vote,

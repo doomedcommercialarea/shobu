@@ -11,6 +11,7 @@ import { Sort } from './Sort';
 import { Stats } from './Stats';
 import { useApp } from './useApp';
 import { ViewSwitch } from './ViewSwitch';
+import { FormCheck } from './FormCheck';
 import { Welcome } from './Welcome';
 import { useUpdateReady } from './update';
 import { Mark } from './Mark';
@@ -180,6 +181,7 @@ export function App() {
       {!showCompare && current === 'foryou' && <ForYou app={app} onOpen={setOpenId} onSort={() => setTab('sort')} />}
       {!showCompare && current === 'ranking' && <Ranking app={app} onOpen={setOpenId} onCompare={() => setComparing({})} onDuel={() => setTab('duel')} onPreview={preview} />}
       {!showCompare && current === 'settings' && <SettingsScreen app={app} onHelp={() => setHelp(true)} />}
+      <FormCheck app={app} />
       {openId && (
         <ItemSheet
           app={app}

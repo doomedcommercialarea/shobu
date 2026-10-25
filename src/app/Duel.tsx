@@ -9,8 +9,6 @@ import { TitleLink } from './TitleLink';
 import { viewWords } from './meta';
 import type { AppState } from './useApp';
 
-/** Titles waiting for "anime or manga?" before Duel asks about them together. */
-const FORM_BATCH = 4;
 /** When the vote is cast: once the chosen cover has finished swelling (160 ms in styles.css). Working out the next
  * pair keeps the page busy for a moment, so it waits until nothing is moving. */
 const VOTE_AFTER_MS = 170;
@@ -31,13 +29,6 @@ export function Duel({ app, onLibrary, onOpen }: { app: AppState; onLibrary: () 
   const nextKey = next ? `${next.a}|${next.b}` : '';
   const pair = picked && heldPair ? heldPair : next;
   const fresh = pair?.fresh ?? [];
-  // Once the watched-or-read card opens, it stays until every title on it is answered.
-  const [formOpen, setFormOpen] = useState(false);
-  const pending = app.formPending.length;
-  useEffect(() => {
-    if (pending >= FORM_BATCH) setFormOpen(true);
-    else if (pending === 0) setFormOpen(false);
-  }, [pending]);
   const a = pair ? app.itemById.get(pair.a) : undefined;
   const b = pair ? app.itemById.get(pair.b) : undefined;
 
@@ -78,8 +69,8 @@ export function Duel({ app, onLibrary, onOpen }: { app: AppState; onLibrary: () 
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      // Not while a title card is open over the duel, or the quick check is up.
-      if (e.target instanceof HTMLInputElement || e.metaKey || e.ctrlKey || (formOpen && pending > 0) || document.querySelector('[aria-modal="true"]')) return;
+      // Not while a title card or the anime-or-manga list is open over the duel.
+      if (e.target instanceof HTMLInputElement || e.metaKey || e.ctrlKey || document.querySelector('[aria-modal="true"]')) return;
       // Nothing else while a pick is under way.
       if (picked) {
         if (['ArrowLeft', 'ArrowRight', 'ArrowDown'].includes(e.key)) e.preventDefault();
@@ -110,46 +101,6 @@ export function Duel({ app, onLibrary, onOpen }: { app: AppState; onLibrary: () 
     );
   }
   const starting = app.votes.length === 0;
-
-  // A few new titles that exist as anime and manga are waiting: ask about them in place of the next duel.
-  if (formOpen && pending > 0) {
-    return (
-      <main className="screen duel quick-check">
-        <div className="notice form-ask" role="status">
-          <p>
-            <span className="note-label">Quick check</span>
-            You've added {pending === 1 ? 'a title' : `${pending} titles`} that {pending === 1 ? 'exists' : 'exist'} as both anime
-            and manga. Which did you see? This decides where they show in the Anime and Manga views.
-          </p>
-          <ul className="form-list">
-            {app.formPending.map((id) => {
-              const it = app.itemById.get(id);
-              if (!it) return null;
-              return (
-                <li key={id}>
-                  <span>{app.title(it)}</span>
-                  <span className="form-choices">
-                    <button className="btn btn-small" onClick={() => app.answerForm(id, { anime: true, manga: false })}>
-                      Anime
-                    </button>
-                    <button className="btn btn-small" onClick={() => app.answerForm(id, { anime: false, manga: true })}>
-                      Manga
-                    </button>
-                    <button className="btn btn-small" onClick={() => app.answerForm(id, { anime: true, manga: true })}>
-                      Both
-                    </button>
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-          <button className="btn btn-quiet btn-small" onClick={() => app.answerForm(null, null)}>
-            Back to duels (the rest wait in the Library)
-          </button>
-        </div>
-      </main>
-    );
-  }
 
   // A new #1 once the list has 10 titles (before that the top changes every few duels): a title that moved into
   // the top spot, or a single title that joined there.

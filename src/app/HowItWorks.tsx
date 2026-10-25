@@ -43,8 +43,10 @@ export function HowItWorks({ onClose }: { onClose: () => void }) {
           there, it offers to search AniList, which finds anything older or less popular.
         </p>
         <p>
-          Some titles exist as both anime and manga, such as Death Note. For those, Quick log, Duel's quick check and the title's card ask which you've seen:
-          the anime, the manga, both or neither. A card is one franchise, so the answer is about the whole thing, not one season.
+          Some titles exist as both anime and manga, such as Death Note. For those, Quick log and the title's card ask which you've seen:
+          the anime, the manga, both or neither. A card is one franchise, so the answer is about the whole thing, not one season. Duels in
+          the Both view don't stop to ask. A title brought in there counts as seen in the Anime and Manga views until you say which, and
+          switching to one of those views lists the titles still to answer.
         </p>
       </section>
 

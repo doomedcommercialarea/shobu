@@ -31,6 +31,8 @@ export interface TipContext {
   movedUp: { title: string; places: number } | null;
   /** You have answered anime-only or manga-only for a title that is both. */
   knowsOneForm: boolean;
+  /** In the Both view: a title with an anime and a manga logged as seen without saying which. */
+  unanswered?: { id: string; title: string } | null;
 }
 
 export interface Tip {
@@ -63,6 +65,14 @@ export function pickTip(state: TipState, ctx: TipContext): Tip | null {
     return {
       id: 'browse',
       text: "You've passed on the last five new titles. In the Library, Browse lets you filter by year, which helps you spot ones you know.",
+    };
+  }
+  if (ctx.unanswered && fresh('forms')) {
+    const t = ctx.unanswered.title;
+    return {
+      id: 'forms',
+      text: `${t} is both anime and manga. Until you say which you've seen, it counts as both in the Anime and Manga views. You can set it on its card, or under Library → Browse → Anime or manga?`,
+      open: { itemId: ctx.unanswered.id, label: `Open ${t}` },
     };
   }
   if (ctx.knowsOneForm && fresh('views')) {

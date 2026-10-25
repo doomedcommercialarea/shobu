@@ -28,6 +28,17 @@ describe('tips', () => {
     expect(pickTip(afterShown(NO_TIPS, tip!, 12), ctx({ ...c, duels: 40 }))).toBeNull();
   });
 
+  it('explains anime or manga once, naming the title, with a button to open it', () => {
+    const c = ctx({ unanswered: { id: 'dn', title: 'Death Note' } });
+    const tip = pickTip(NO_TIPS, c);
+    expect(tip?.id).toBe('forms');
+    expect(tip?.text).toContain('Death Note is both anime and manga.');
+    expect(tip?.text).toContain('Library → Browse → Anime or manga?');
+    expect(tip?.open).toEqual({ itemId: 'dn', label: 'Open Death Note' });
+    expect(pickTip(afterShown(NO_TIPS, tip!, 12), ctx({ ...c, duels: 40 }))).toBeNull();
+    expect(pickTip(NO_TIPS, ctx({ unanswered: null }))).toBeNull();
+  });
+
   it('ignores big franchises lower down', () => {
     expect(pickTip(NO_TIPS, ctx({ onScreen: [{ id: 'f', title: 'Fate', rank: 80, storylines: ['A', 'B'] }] }))).toBeNull();
   });
