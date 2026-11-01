@@ -33,11 +33,19 @@
   /* Screen height the safe areas take (status bar, home indicator), plus the extra top gap. Duel and Quick sort
      subtract it so they still fit when the app runs from the home screen. */
   --safe-y: calc(env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px) + var(--top-gap) - 14px);
+  /* Screen width the safe areas take at the sides: the notch in landscape, and on the iPhone Duo the column the
+     status bar moves into. The body is padded by them, so the page lays out beside them; fixed elements, which
+     the body's padding doesn't reach, pad themselves. Left and right can differ. */
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-vw: calc(100vw - var(--safe-left) - var(--safe-right));
   color-scheme: light;
 }
 @media (display-mode: standalone) {
   :root {
-    --top-gap: 26px;
+    /* The extra 12px clears the blur band under a status bar at the top. When the status bar sits in a side
+       column instead (iPhone Duo), the top inset is 0 and so is the extra gap. */
+    --top-gap: calc(14px + min(12px, env(safe-area-inset-top, 0px) * 100));
   }
 }
 @media (prefers-color-scheme: dark) {
@@ -68,6 +76,10 @@ body {
   font-size: 16px;
   line-height: 1.45;
   -webkit-text-size-adjust: 100%;
+}
+body {
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
 }
 img {
   max-width: 100%;
@@ -177,7 +189,8 @@ a {
     justify-content: space-around;
     background: var(--surface);
     border-top: 1px solid var(--line);
-    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+    padding: 6px calc(8px + var(--safe-right)) calc(6px + env(safe-area-inset-bottom, 0px))
+      calc(8px + var(--safe-left));
   }
   .tabs button {
     flex: 1;
@@ -437,7 +450,7 @@ a {
   text-align: center;
 }
 .sort-card .cover-lg {
-  width: min(56vw, 220px);
+  width: min(var(--safe-vw) * 0.56, 220px);
 }
 .sort-question {
   text-align: center;
@@ -807,6 +820,8 @@ a {
 .sheet-backdrop {
   position: fixed;
   inset: 0;
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
   z-index: 20;
   background: rgba(var(--shade), 0.5);
   display: flex;
@@ -1665,8 +1680,8 @@ main.sort {
   gap: 10px;
 }
 .sort-card .cover-lg {
-  width: min(56vw, 220px, calc((100vh - 470px - var(--safe-y)) * 2 / 3));
-  width: min(56vw, 220px, calc((100svh - 470px - var(--safe-y)) * 2 / 3));
+  width: min(var(--safe-vw) * 0.56, 220px, calc((100vh - 470px - var(--safe-y)) * 2 / 3));
+  width: min(var(--safe-vw) * 0.56, 220px, calc((100svh - 470px - var(--safe-y)) * 2 / 3));
   min-width: 80px;
 }
 .sort-card .item-meta {
@@ -2315,12 +2330,12 @@ main.sort {
 /* New version ready: a line above the tab bar on phones, at the bottom on wide screens. */
 .update-bar {
   position: fixed;
-  left: 50%;
+  left: calc(50% + (var(--safe-left) - var(--safe-right)) / 2);
   transform: translateX(-50%);
   bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   z-index: 15;
   width: max-content;
-  max-width: calc(100% - 32px);
+  max-width: calc(100% - 32px - var(--safe-left) - var(--safe-right));
   display: flex;
   align-items: center;
   gap: 8px;
